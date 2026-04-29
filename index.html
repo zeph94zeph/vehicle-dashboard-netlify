@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1e293b">
+<title>車両管理ダッシュボード</title>
+<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22%E8%BB%8A%E4%B8%A1%E7%AE%A1%E7%90%86%22%2C%22short_name%22%3A%22%E8%BB%8A%E4%B8%A1%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%231e293b%22%2C%22theme_color%22%3A%22%231e293b%22%7D">
+<style>
+:root{
+  --bg:#f1f5f9;--surface:#fff;--surface-2:#f8fafc;
+  --border:#e2e8f0;--border-strong:#cbd5e1;
+  --text:#0f172a;--text-2:#475569;--text-3:#94a3b8;
+  --primary:#1e293b;--accent:#0ea5e9;
+  --danger:#dc2626;--warn:#f59e0b;--ok:#16a34a;
+  --shadow:0 1px 3px rgba(15,23,42,.08),0 1px 2px rgba(15,23,42,.04);
+  --shadow-lg:0 10px 25px -5px rgba(15,23,42,.15),0 8px 10px -6px rgba(15,23,42,.1);
+  --radius:14px;--radius-sm:10px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+html,body{height:100%;overscroll-behavior-y:none}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI",sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  font-size:15px;line-height:1.5;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.app{max-width:480px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;padding-bottom:84px}
+header{
+  position:sticky;top:0;z-index:40;
+  background:var(--primary);color:#fff;
+  padding:calc(env(safe-area-inset-top)+12px) 16px 12px;
+  box-shadow:var(--shadow);
+}
+header h1{font-size:17px;font-weight:600;letter-spacing:.02em;display:flex;align-items:center;gap:8px}
+header .sub{font-size:11px;color:#cbd5e1;margin-top:2px;display:flex;justify-content:space-between;align-items:center}
+.refresh-btn{background:none;border:none;color:#cbd5e1;font-size:14px;padding:0;cursor:pointer}
+
+.tab-content{padding:16px 14px;display:none}
+.tab-content.active{display:block}
+
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.card-pad{padding:14px}
+.card h3{font-size:14px;color:var(--text-2);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.section-title{font-size:12px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin:18px 4px 8px;display:flex;align-items:center;gap:6px}
+.section-title:first-child{margin-top:0}
+
+.event{display:flex;gap:12px;padding:12px;background:var(--surface);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.event::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent)}
+.event.upcoming::before{background:var(--warn)}
+.event-date{flex-shrink:0;text-align:center;width:50px;padding:4px 0}
+.event-date .day{font-size:22px;font-weight:700;line-height:1;color:var(--text)}
+.event-date .dow{font-size:11px;color:var(--text-2);margin-top:2px;font-weight:500}
+.event-body{flex:1;min-width:0}
+.event-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.35}
+.event-meta{font-size:12px;color:var(--text-2);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+
+.alert{display:flex;gap:12px;padding:14px;background:var(--surface);border-radius:var(--radius);margin-bottom:8px;box-shadow:var(--shadow);border-left:4px solid var(--warn)}
+.alert.danger{border-left-color:var(--danger)}
+.alert.info{border-left-color:var(--accent)}
+.alert-icon{font-size:22px;line-height:1;flex-shrink:0;width:28px;text-align:center}
+.alert-body{flex:1;min-width:0}
+.alert-title{font-size:14px;font-weight:600;color:var(--text);line-height:1.35}
+.alert-desc{font-size:12px;color:var(--text-2);margin-top:3px}
+.alert-action{font-size:11px;color:var(--accent);font-weight:600;padding:4px 10px;border:1px solid var(--accent);border-radius:999px;display:inline-block;margin-top:6px;cursor:pointer;background:none}
+
+.vehicle{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden;cursor:pointer;transition:transform .15s}
+.vehicle:active{transform:scale(.985)}
+.v-head{padding:14px 14px 10px;display:flex;align-items:flex-start;gap:12px;border-bottom:1px solid var(--border)}
+.v-pill{flex-shrink:0;width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;text-align:center;line-height:1.1;padding:2px}
+.v-info{flex:1;min-width:0}
+.v-name{font-size:15px;font-weight:700;color:var(--text);line-height:1.25}
+.v-sub{font-size:11px;color:var(--text-2);margin-top:2px}
+.v-status{flex-shrink:0;font-size:10px;padding:3px 8px;border-radius:999px;background:#dcfce7;color:#16a34a;font-weight:600;align-self:center}
+.v-status.warn{background:#fef3c7;color:#b45309}
+.v-status.danger{background:#fee2e2;color:#dc2626}
+.v-foot{padding:10px 14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px}
+.v-foot div{display:flex;flex-direction:column;gap:2px}
+.v-foot .label{color:var(--text-3);font-size:10px}
+.v-foot .value{color:var(--text);font-weight:500;font-size:12px}
+
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal.active{display:flex}
+.modal-card{background:var(--surface);width:100%;max-width:480px;max-height:92vh;border-radius:18px 18px 0 0;overflow:hidden;display:flex;flex-direction:column;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.modal-head .close{margin-left:auto;background:var(--bg);border:none;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--text-2);display:flex;align-items:center;justify-content:center}
+.modal-body{overflow-y:auto;padding:14px 16px;-webkit-overflow-scrolling:touch}
+.modal-section{margin-bottom:18px}
+.modal-section h4{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+
+.kv{display:grid;grid-template-columns:90px 1fr;gap:6px 12px;font-size:13px}
+.kv .k{color:var(--text-3);font-size:12px}
+.kv .v{color:var(--text);font-weight:500}
+
+.history-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;gap:10px}
+.history-item:last-child{border-bottom:none}
+.history-item .h-date{flex-shrink:0;font-size:11px;color:var(--text-3);width:64px}
+.history-item .h-body{flex:1;min-width:0}
+.history-item .h-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+.history-item .h-meta{font-size:11px;color:var(--text-2);margin-top:2px}
+.h-tag{display:inline-block;font-size:9px;padding:1px 6px;border-radius:4px;background:var(--bg);color:var(--text-2);margin-right:4px;font-weight:600;text-transform:uppercase}
+.h-tag.maintenance{background:#dbeafe;color:#1d4ed8}
+.h-tag.repair{background:#fee2e2;color:#dc2626}
+.h-tag.inspection{background:#fef3c7;color:#b45309}
+.h-tag.shaken{background:#dcfce7;color:#16a34a}
+.h-tag.scheduled{background:#dbeafe;color:#1d4ed8}
+
+.attach-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;text-decoration:none;margin:4px 4px 0 0;font-weight:500}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:13px 16px;background:var(--primary);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;width:100%;text-decoration:none}
+.btn.secondary{background:var(--surface-2);color:var(--text);border:1px solid var(--border)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+  font-size:14px;font-family:inherit;background:var(--surface);color:var(--text);
+}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{
+  outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.15)
+}
+.form-group textarea{resize:vertical;min-height:70px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+nav.tabs{
+  position:fixed;bottom:0;left:0;right:0;
+  max-width:480px;margin:0 auto;
+  background:var(--surface);border-top:1px solid var(--border);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding:6px 6px calc(env(safe-area-inset-bottom)+6px);
+  z-index:50;
+  box-shadow:0 -4px 12px rgba(15,23,42,.04);
+}
+.tab{background:none;border:none;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--text-3);cursor:pointer;border-radius:8px;font-family:inherit;font-size:10px}
+.tab.active{color:var(--primary)}
+.tab .icon{font-size:20px;line-height:1}
+.tab .label{font-size:10px;font-weight:600}
+
+.empty{text-align:center;padding:40px 20px;color:var(--text-3);font-size:13px}
+.empty .em{font-size:36px;margin-bottom:10px;opacity:.4}
+
+.fab{position:fixed;right:16px;bottom:96px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;box-shadow:var(--shadow-lg);cursor:pointer;z-index:45;display:flex;align-items:center;justify-content:center;font-weight:300}
+
+.chips{display:flex;gap:6px;overflow-x:auto;padding:4px 0 8px;margin:0 -4px;-webkit-overflow-scrolling:touch}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:12px;color:var(--text-2);cursor:pointer;font-weight:500;white-space:nowrap}
+.chip.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;z-index:200;opacity:0;transition:all .25s;pointer-events:none;max-width:90%}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:var(--danger)}
+
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading{padding:60px 20px;text-align:center;color:var(--text-3)}
+.loading .spinner{margin-bottom:10px}
+
+.error-banner{background:#fee2e2;color:#991b1b;padding:12px 14px;border-radius:var(--radius-sm);font-size:13px;margin-bottom:12px;border:1px solid #fca5a5}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>🚗 車両管理ダッシュボード</h1>
+    <div class="sub">
+      <span id="header-date">読込中…</span>
+      <button class="refresh-btn" onclick="loadAllData()" title="更新">↻</button>
+    </div>
+  </header>
+
+  <section class="tab-content active" id="tab-today">
+    <div class="section-title">📅 今日の予定</div>
+    <div id="today-events"><div class="loading"><div class="spinner"></div><div>データ取得中...</div></div></div>
+    <div class="section-title">🔜 直近1週間の予定</div>
+    <div id="upcoming-events"></div>
+  </section>
+
+  <section class="tab-content" id="tab-alerts">
+    <div class="section-title">🚨 要対応アラート</div>
+    <div id="alerts-list"><div class="loading"><div class="spinner"></div><div>データ取得中...</div></div></div>
+  </section>
+
+  <section class="tab-content" id="tab-vehicles">
+    <div class="chips" id="vehicle-filter">
+      <button class="chip active" data-filter="all">全て</button>
+      <button class="chip" data-filter="稼働中">稼働中</button>
+      <button class="chip" data-filter="整備中">整備中</button>
+      <button class="chip" data-filter="休車">休車</button>
+    </div>
+    <div id="vehicle-list"><div class="loading"><div class="spinner"></div><div>データ取得中...</div></div></div>
+  </section>
+
+  <section class="tab-content" id="tab-menu">
+    <div class="card"><div class="card-pad">
+      <h3>📊 サマリー</h3>
+      <div class="kv">
+        <div class="k">登録車両</div><div class="v" id="total-vehicles">-</div>
+        <div class="k">稼働中</div><div class="v" id="active-vehicles">-</div>
+        <div class="k">整備履歴</div><div class="v" id="recent-maint">-</div>
+        <div class="k">未対応アラート</div><div class="v" id="alert-count">-</div>
+      </div>
+    </div></div>
+    <div class="card"><div class="card-pad">
+      <h3>🔗 ショートカット</h3>
+      <a class="attach-btn" href="https://www.notion.so/14e7e6a11c1e8095a8ced7f2b64fe039" target="_blank">📋 Notion車両管理</a>
+      <a class="attach-btn" href="https://calendar.google.com/calendar/u/0/r" target="_blank">📅 Googleカレンダー</a>
+      <a class="attach-btn" href="https://drive.google.com/drive/folders/1VtJaLBsjEYah9pMSlGSQrwkPIX2jFTgG" target="_blank">📁 Driveフォルダ</a>
+    </div></div>
+    <div class="card"><div class="card-pad">
+      <h3>ℹ️ アプリ情報</h3>
+      <div class="kv">
+        <div class="k">バージョン</div><div class="v">v1.0 ライブ版</div>
+        <div class="k">データ</div><div class="v">Notion API（リアルタイム）</div>
+        <div class="k">最終取得</div><div class="v" id="data-date">-</div>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:10px;line-height:1.5">
+        整備記録の追加・編集はNotionに反映されます。<br>
+        スマホのホーム画面に追加するとアプリのように使えます。
+      </p>
+    </div></div>
+  </section>
+
+  <button class="fab" id="fab-add">+</button>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="today"><span class="icon">📅</span><span class="label">今日</span></button>
+    <button class="tab" data-tab="alerts"><span class="icon">🚨</span><span class="label">アラート</span></button>
+    <button class="tab" data-tab="vehicles"><span class="icon">🚗</span><span class="label">車両</span></button>
+    <button class="tab" data-tab="menu"><span class="icon">⚙️</span><span class="label">メニュー</span></button>
+  </nav>
+</div>
+
+<div class="modal" id="vehicle-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="v-pill" id="modal-pill" style="background:#3b82f6">-</div>
+      <div>
+        <div style="font-size:16px;font-weight:700" id="modal-title">-</div>
+        <div style="font-size:11px;color:var(--text-3)" id="modal-subtitle">-</div>
+      </div>
+      <button class="close" onclick="closeModal('vehicle-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="modal" id="add-modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <div style="font-size:22px">📝</div>
+      <div>
+        <div style="font-size:16px;font-weight:700" id="add-modal-title">整備記録を追加</div>
+        <div style="font-size:11px;color:var(--text-3)" id="add-modal-sub">Notionに即時保存されます</div>
+      </div>
+      <button class="close" onclick="closeModal('add-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>車両 *</label>
+        <select id="add-vehicle"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>実施日 *</label><input type="date" id="add-date"></div>
+        <div class="form-group"><label>作業種別 *</label>
+          <select id="add-type">
+            <option>定期点検</option><option>点検</option><option>車検</option>
+            <option>部品交換</option><option>修理</option><option>その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>項目（タイトル） *</label><input type="text" id="add-title" placeholder="例: エンジンオイル交換"></div>
+      <div class="form-group"><label>作業内容</label><textarea id="add-content" placeholder="詳細・所見"></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>工賃（円）</label><input type="number" id="add-labor" placeholder="0"></div>
+        <div class="form-group"><label>部品代（円）</label><input type="number" id="add-parts" placeholder="0"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>走行距離（km）</label><input type="number" id="add-mileage" placeholder="0"></div>
+        <div class="form-group"><label>状態</label>
+          <select id="add-status"><option>完了</option><option>予定</option><option>進行中</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>備考</label><textarea id="add-notes" placeholder="次回交換推奨など"></textarea></div>
+
+      <div class="form-group" id="photo-section" style="display:none">
+        <label>📷 写真（既存添付）</label>
+        <div id="photo-thumbs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+
+        <label style="margin-top:6px">📥 アップロード待ち（<span id="queue-count">0</span>枚）</label>
+        <div id="queue-thumbs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;min-height:24px"></div>
+
+        <input type="file" id="photo-input" accept="image/*" style="display:none" multiple>
+        <input type="file" id="photo-camera" accept="image/*" capture="environment" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <button class="btn secondary" type="button" onclick="document.getElementById('photo-camera').click()" id="photo-camera-btn" style="font-size:13px;padding:10px">📷 カメラで追加</button>
+          <button class="btn secondary" type="button" onclick="document.getElementById('photo-input').click()" id="photo-add-btn" style="font-size:13px;padding:10px">🖼️ アルバムから</button>
+        </div>
+        <button class="btn" type="button" onclick="uploadQueue()" id="upload-queue-btn" style="font-size:13px;padding:10px;display:none">📤 まとめてアップロード（<span id="upload-count">0</span>枚）</button>
+        <div id="photo-status" style="font-size:11px;color:var(--text-3);margin-top:6px"></div>
+      </div>
+      <div class="form-group" id="photo-hint" style="display:none">
+        <div style="font-size:11px;color:var(--text-3);background:var(--surface-2);padding:8px 10px;border-radius:6px">
+          💡 写真は<strong>保存後</strong>に追加できます。まず項目を保存してください。
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn secondary" onclick="closeModal('add-modal')">キャンセル</button>
+        <button class="btn" id="save-btn" onclick="saveMaintenance()">💾 Notionに保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API="/api/notion";
+let VEHICLES=[];
+let MAINTENANCE=[];
+let lastFetch=null;
+let editingNotionId=null;  // null = create mode, string = edit mode
+
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const today=()=>new Date();
+const dateOf=s=>new Date(s+"T00:00:00+09:00");
+const daysBetween=(a,b)=>Math.floor((b-a)/(86400000));
+const fmt=n=>n==null?"-":n.toLocaleString("ja-JP");
+const yen=n=>n==null||n===0?"-":"¥"+n.toLocaleString("ja-JP");
+const dow=["日","月","火","水","木","金","土"];
+
+function fmtDate(s){if(!s)return"-";const d=dateOf(s);return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`}
+function dateInfo(s){const d=dateOf(s);return {day:d.getDate(),dow:dow[d.getDay()]}}
+function vehicleByName(name){return VEHICLES.find(v=>v.name===name)}
+function vehicleById(id){return VEHICLES.find(v=>v.id===id)}
+
+const COLORS={"フリード＋":"#3b82f6","ボルボV70":"#dc2626","N-one":"#16a34a","ハスラー":"#eab308","アヴァンシア":"#f97316","NQiGT":"#a855f7","ROOMY":"#ec4899"};
+
+async function api(action,opts={}){
+  try{
+    const r=opts.method==="POST"
+      ? await fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,...opts.body})})
+      : await fetch(`${API}?action=${action}`);
+    if(!r.ok){const e=await r.json().catch(()=>({error:r.statusText}));throw new Error(e.error||`HTTP ${r.status}`)}
+    return r.json();
+  }catch(e){toast("エラー: "+e.message,true);throw e}
+}
+
+async function loadAllData(){
+  try{
+    $("#header-date").textContent="同期中...";
+    const data=await api("all");
+    VEHICLES=data.vehicles.map(v=>({...v,color:COLORS[v.name]||"#64748b"}));
+    MAINTENANCE=data.maintenance;
+    lastFetch=new Date();
+    renderHeader();
+    renderToday();
+    renderAlerts();
+    renderVehicles();
+    renderMenu();
+    initAddForm();
+    toast("✅ Notionから最新データ取得完了");
+  }catch(e){
+    $("#today-events").innerHTML=`<div class="error-banner">❌ Notion API接続エラー<br>${e.message}<br><br>NetlifyのEnvironment Variablesに NOTION_TOKEN が設定されているか確認してください。</div>`;
+  }
+}
+
+$$(".tab").forEach(b=>b.addEventListener("click",()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active"));
+  $$(".tab-content").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  $("#tab-"+b.dataset.tab).classList.add("active");
+  if(b.dataset.tab==="vehicles")renderVehicles();
+  if(b.dataset.tab==="alerts")renderAlerts();
+  if(b.dataset.tab==="menu")renderMenu();
+  if(b.dataset.tab==="today")renderToday();
+}));
+
+function renderHeader(){
+  const t=today();
+  $("#header-date").textContent=`${t.getFullYear()}年${t.getMonth()+1}月${t.getDate()}日（${dow[t.getDay()]}） / 全${VEHICLES.length}台`;
+}
+
+function renderToday(){
+  if(!MAINTENANCE.length){return}
+  const t=today();
+  const upcoming=MAINTENANCE
+    .filter(m=>m.status==="予定"&&m.date)
+    .map(m=>({...m,daysAway:daysBetween(t,dateOf(m.date))}))
+    .filter(m=>m.daysAway>=0&&m.daysAway<=14)
+    .sort((a,b)=>a.daysAway-b.daysAway);
+  const todays=upcoming.filter(m=>m.daysAway===0);
+  const week=upcoming.filter(m=>m.daysAway>0&&m.daysAway<=7);
+
+  const renderEvent=m=>{
+    const di=dateInfo(m.date);
+    const v=vehicleByName(m.vehicleName);
+    return `<div class="event ${m.daysAway===0?"":"upcoming"}">
+      <div class="event-date"><div class="day">${di.day}</div><div class="dow">${di.dow}</div></div>
+      <div class="event-body">
+        <div class="event-title">${m.title}</div>
+        <div class="event-meta">
+          <span>${m.type}</span>
+          ${v?`<span style="color:${v.color};font-weight:600">🚗 ${v.name}（${v.owner}様）</span>`:""}
+        </div>
+      </div>
+    </div>`;
+  };
+
+  $("#today-events").innerHTML=todays.length
+    ?todays.map(renderEvent).join("")
+    :`<div class="empty"><div class="em">☕</div>今日の整備予定はありません</div>`;
+  $("#upcoming-events").innerHTML=week.length
+    ?week.map(renderEvent).join("")
+    :`<div class="empty">直近1週間の予定なし</div>`;
+}
+
+function buildAlerts(){
+  const t=today();
+  const alerts=[];
+  VEHICLES.forEach(v=>{
+    if(!v.inspectionDue)return;
+    const days=daysBetween(t,dateOf(v.inspectionDue));
+    if(days<0){
+      alerts.push({level:"danger",icon:"🚨",title:`${v.name} 車検期限切れ`,desc:`${fmtDate(v.inspectionDue)}（${-days}日 超過） / ${v.owner}様`,vehicleId:v.id,sortKey:days});
+    }else if(days<=180){
+      alerts.push({level:"warn",icon:"⚠️",title:`${v.name} 車検残${days}日`,desc:`期限: ${fmtDate(v.inspectionDue)} / ${v.owner}様`,vehicleId:v.id,sortKey:days});
+    }
+  });
+  MAINTENANCE.filter(m=>m.status==="予定"&&m.date).forEach(m=>{
+    const days=daysBetween(t,dateOf(m.date));
+    if(days>=0&&days<=7){
+      const v=vehicleByName(m.vehicleName);
+      alerts.push({level:"info",icon:"📌",title:`${m.title}`,desc:`${fmtDate(m.date)} / ${v?.name||"不明"}（${v?.owner||"-"}様）`,vehicleId:v?.id,sortKey:days+1000});
+    }
+  });
+  return alerts.sort((a,b)=>a.sortKey-b.sortKey);
+}
+
+function renderAlerts(){
+  const alerts=buildAlerts();
+  $("#alerts-list").innerHTML=alerts.length
+    ?alerts.map(a=>`<div class="alert ${a.level}">
+        <div class="alert-icon">${a.icon}</div>
+        <div class="alert-body">
+          <div class="alert-title">${a.title}</div>
+          <div class="alert-desc">${a.desc}</div>
+          ${a.vehicleId?`<button class="alert-action" onclick="openVehicle(${a.vehicleId})">車両詳細を見る →</button>`:""}
+        </div>
+      </div>`).join("")
+    :`<div class="empty"><div class="em">✨</div>アラートはありません</div>`;
+}
+
+let vehicleFilter="all";
+$$("#vehicle-filter .chip").forEach(c=>c.addEventListener("click",()=>{
+  $$("#vehicle-filter .chip").forEach(x=>x.classList.remove("active"));
+  c.classList.add("active");
+  vehicleFilter=c.dataset.filter;
+  renderVehicles();
+}));
+
+function renderVehicles(){
+  if(!VEHICLES.length)return;
+  const t=today();
+  const list=VEHICLES.filter(v=>vehicleFilter==="all"||v.status===vehicleFilter);
+  $("#vehicle-list").innerHTML=list.map(v=>{
+    const days=v.inspectionDue?daysBetween(t,dateOf(v.inspectionDue)):null;
+    const statusClass=days==null?"":days<0?"danger":days<=180?"warn":"";
+    const statusLabel=days==null?"-":days<0?"期限超過":days<=180?`残${days}日`:"良好";
+    const lastMaint=MAINTENANCE.filter(m=>m.vehicleName===v.name&&m.status==="完了").sort((a,b)=>(b.date||"").localeCompare(a.date||""))[0];
+    return `<div class="vehicle" onclick="openVehicle(${v.id})">
+      <div class="v-head">
+        <div class="v-pill" style="background:${v.color}">${v.name.slice(0,3)}</div>
+        <div class="v-info">
+          <div class="v-name">${v.name}</div>
+          <div class="v-sub">${v.category} / ${v.reg}</div>
+        </div>
+        <div class="v-status ${statusClass}">${statusLabel}</div>
+      </div>
+      <div class="v-foot">
+        <div><div class="label">所有者</div><div class="value">${v.owner}</div></div>
+        <div><div class="label">車検期限</div><div class="value">${fmtDate(v.inspectionDue)}</div></div>
+        <div><div class="label">前回整備</div><div class="value">${lastMaint?fmtDate(lastMaint.date):"履歴なし"}</div></div>
+        <div><div class="label">前回内容</div><div class="value">${lastMaint?lastMaint.title:"-"}</div></div>
+      </div>
+    </div>`;
+  }).join("")||`<div class="empty">該当車両なし</div>`;
+}
+
+function openVehicle(id){
+  const v=vehicleById(id);
+  if(!v)return;
+  const t=today();
+  const days=v.inspectionDue?daysBetween(t,dateOf(v.inspectionDue)):null;
+  const history=MAINTENANCE.filter(m=>m.vehicleName===v.name).sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+  const totalCost=history.filter(m=>m.status==="完了").reduce((s,m)=>s+(m.labor||0)+(m.parts||0),0);
+  const tagClass=ty=>({"定期点検":"inspection","点検":"inspection","車検":"shaken","部品交換":"maintenance","修理":"repair"})[ty]||"";
+
+  $("#modal-pill").style.background=v.color;
+  $("#modal-pill").textContent=v.name.slice(0,3);
+  $("#modal-title").textContent=v.name;
+  $("#modal-subtitle").textContent=`${v.category} / ${v.reg}`;
+  $("#modal-body").innerHTML=`
+    <div class="modal-section">
+      <h4>基本情報</h4>
+      <div class="kv">
+        <div class="k">所有者</div><div class="v">${v.owner}</div>
+        <div class="k">型式</div><div class="v">${v.model||"-"}</div>
+        <div class="k">登録番号</div><div class="v">${v.reg}</div>
+        <div class="k">燃料</div><div class="v">${v.fuel||"-"}</div>
+        <div class="k">状態</div><div class="v">${v.status||"-"}</div>
+        ${v.inspectionDue?`<div class="k">車検期限</div><div class="v" style="color:${days<0?'#dc2626':days<=180?'#b45309':'#16a34a'};font-weight:600">${fmtDate(v.inspectionDue)}（${days>=0?'残'+days+'日':Math.abs(days)+'日超過'}）</div>`:""}
+      </div>
+    </div>
+    ${v.attachments?.length?`<div class="modal-section">
+      <h4>添付ファイル</h4>
+      ${v.attachments.map(u=>`<a class="attach-btn" href="${u}" target="_blank">📎 ${u.split('/').pop().substring(0,30)}</a>`).join("")}
+    </div>`:""}
+    <div class="modal-section">
+      <h4>累計整備費用（完了 ${history.filter(m=>m.status==="完了").length}件）</h4>
+      <div style="font-size:24px;font-weight:700;color:var(--primary)">${yen(totalCost)}</div>
+    </div>
+    <div class="modal-section">
+      <h4>整備履歴（${history.length}件）</h4>
+      ${history.length?history.map(m=>`<div class="history-item">
+        <div class="h-date">${fmtDate(m.date).slice(2)}</div>
+        <div class="h-body">
+          <div class="h-title">
+            <span class="h-tag ${tagClass(m.type)}">${m.type||"-"}</span>${m.title||"(無題)"}
+            ${m.status==="予定"?'<span class="h-tag scheduled">予定</span>':""}
+          </div>
+          <div class="h-meta">
+            ${m.mileage?fmt(m.mileage)+"km / ":""}${yen((m.labor||0)+(m.parts||0))}
+            ${m.content?`<br><span style="color:var(--text-3)">${m.content.substring(0,80)}${m.content.length>80?"...":""}</span>`:""}
+            ${m.attachments?.length?`<br>${m.attachments.map(u=>`<a href="${u}" target="_blank" style="color:var(--accent);font-size:11px">📎 添付</a>`).join(" ")}`:""}
+            <br>
+            <button class="alert-action" style="margin-top:6px" onclick="event.stopPropagation();prefillEdit('${m.notionId}')">✏️ 編集</button>
+            ${m.notionUrl?`<a href="${m.notionUrl}" target="_blank" style="color:var(--accent);font-size:11px;margin-left:8px">📋 Notion</a>`:""}
+          </div>
+        </div>
+      </div>`).join(""):`<div class="empty">履歴なし</div>`}
+    </div>
+    <div class="btn-row">
+      <a class="btn secondary" href="${v.notionUrl}" target="_blank">📋 Notion</a>
+      <button class="btn" onclick="prefillAdd(${v.id})">+ 整備追加</button>
+    </div>
+  `;
+  openModal("vehicle-modal");
+}
+
+function initAddForm(){
+  $("#add-vehicle").innerHTML=VEHICLES.map(v=>`<option value="${v.name}">${v.name}（${v.owner}様）</option>`).join("");
+  $("#add-date").value=new Date().toISOString().slice(0,10);
+}
+
+function prefillAdd(vehicleId){
+  closeModal("vehicle-modal");
+  setTimeout(()=>{
+    editingNotionId=null;
+    resetForm();
+    const v=vehicleById(vehicleId);
+    if(v)$("#add-vehicle").value=v.name;
+    $("#add-modal-title").textContent="整備記録を追加";
+    $("#add-modal-sub").textContent="Notionに即時保存されます";
+    $("#save-btn").textContent="💾 Notionに保存";
+    togglePhotoSection(false);
+    openModal("add-modal");
+  },200);
+}
+
+function prefillEdit(notionId){
+  const m=MAINTENANCE.find(x=>x.notionId===notionId);
+  if(!m){toast("記録が見つかりません",true);return}
+  closeModal("vehicle-modal");
+  setTimeout(()=>{
+    editingNotionId=notionId;
+    $("#add-vehicle").value=m.vehicleName||"";
+    $("#add-date").value=m.date||"";
+    $("#add-type").value=m.type||"定期点検";
+    $("#add-title").value=m.title||"";
+    $("#add-content").value=m.content||"";
+    $("#add-labor").value=m.labor||"";
+    $("#add-parts").value=m.parts||"";
+    $("#add-mileage").value=m.mileage||"";
+    $("#add-status").value=m.status||"完了";
+    $("#add-notes").value=m.notes||"";
+    $("#add-modal-title").textContent="整備記録を編集";
+    $("#add-modal-sub").textContent=`Notionの既存レコードを更新（${fmtDate(m.date)}）`;
+    $("#save-btn").textContent="💾 変更を保存";
+    togglePhotoSection(true,m);
+    openModal("add-modal");
+  },200);
+}
+
+function resetForm(){
+  ["add-title","add-content","add-labor","add-parts","add-mileage","add-notes"].forEach(id=>$("#"+id).value="");
+  $("#add-date").value=new Date().toISOString().slice(0,10);
+  $("#add-type").value="定期点検";
+  $("#add-status").value="完了";
+  $("#photo-status").textContent="";
+  $("#photo-input").value="";
+}
+
+function togglePhotoSection(editMode,maint){
+  $("#photo-section").style.display=editMode?"":"none";
+  $("#photo-hint").style.display=editMode?"none":"";
+  clearQueue();
+  if(editMode&&maint){
+    renderPhotoThumbs(maint.attachments||[]);
+  }
+}
+
+function renderPhotoThumbs(urls){
+  const c=$("#photo-thumbs");
+  if(!urls.length){c.innerHTML='<span style="font-size:11px;color:var(--text-3)">添付なし</span>';return}
+  c.innerHTML=urls.map((u,i)=>{
+    const isImg=/\.(jpe?g|png|gif|webp|heic)$/i.test(u.split("?")[0]);
+    return isImg
+      ?`<a href="${u}" target="_blank"><img src="${u}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)"></a>`
+      :`<a href="${u}" target="_blank" class="attach-btn" style="font-size:11px;padding:6px 10px;margin:0">📎 ${u.split('/').pop().substring(0,15)}</a>`;
+  }).join("");
+}
+
+// Resize image client-side to keep under 5MB and reduce upload time
+async function resizeImage(file,maxDim=1600,quality=0.85){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const ratio=Math.min(maxDim/img.width,maxDim/img.height,1);
+      const w=Math.round(img.width*ratio);
+      const h=Math.round(img.height*ratio);
+      const canvas=document.createElement("canvas");
+      canvas.width=w;canvas.height=h;
+      canvas.getContext("2d").drawImage(img,0,0,w,h);
+      canvas.toBlob(b=>b?resolve(b):reject(new Error("blob失敗")),"image/jpeg",quality);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("画像読み込み失敗"))};
+    img.src=url;
+  });
+}
+
+function blobToBase64(blob){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();
+    r.onload=()=>resolve(r.result.split(",")[1]);
+    r.onerror=()=>reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
+// In-memory photo queue (File objects waiting to be uploaded)
+let photoQueue=[];
+
+function addToQueue(files){
+  for(const f of files){
+    if(f.type.startsWith("image/"))photoQueue.push(f);
+  }
+  renderQueue();
+}
+
+function removeFromQueue(idx){
+  photoQueue.splice(idx,1);
+  renderQueue();
+}
+
+function renderQueue(){
+  $("#queue-count").textContent=photoQueue.length;
+  $("#upload-count").textContent=photoQueue.length;
+  $("#upload-queue-btn").style.display=photoQueue.length?"flex":"none";
+  const c=$("#queue-thumbs");
+  if(!photoQueue.length){c.innerHTML='<span style="font-size:11px;color:var(--text-3)">カメラ／アルバムから写真を追加してください</span>';return}
+  c.innerHTML=photoQueue.map((f,i)=>{
+    const url=URL.createObjectURL(f);
+    return `<div style="position:relative">
+      <img src="${url}" style="width:64px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">
+      <button onclick="removeFromQueue(${i})" style="position:absolute;top:-6px;right:-6px;background:var(--danger);color:#fff;border:none;width:20px;height:20px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer">×</button>
+    </div>`;
+  }).join("");
+}
+
+function clearQueue(){
+  photoQueue=[];
+  renderQueue();
+  $("#photo-status").textContent="";
+}
+
+async function uploadQueue(){
+  if(!editingNotionId){toast("先に整備記録を保存してください",true);return}
+  if(!photoQueue.length){toast("アップロードする写真がありません",true);return}
+  const status=$("#photo-status");
+  const cBtn=$("#photo-camera-btn");
+  const aBtn=$("#photo-add-btn");
+  const uBtn=$("#upload-queue-btn");
+  cBtn.disabled=aBtn.disabled=uBtn.disabled=true;
+  try{
+    // Step 1: resize + encode all queued images
+    const photos=[];
+    for(let i=0;i<photoQueue.length;i++){
+      const file=photoQueue[i];
+      status.textContent=`📐 圧縮中 ${i+1}/${photoQueue.length}: ${file.name||"photo"}`;
+      const blob=await resizeImage(file);
+      const base64=await blobToBase64(blob);
+      photos.push({
+        filename:(file.name||`photo_${Date.now()}_${i}.jpg`).replace(/\.[^.]+$/,".jpg"),
+        contentType:"image/jpeg",
+        base64,
+        sizeKB:Math.round(blob.size/1024),
+      });
+    }
+    // Step 2: send all in ONE request → single PATCH on Notion
+    const totalKB=photos.reduce((s,p)=>s+p.sizeKB,0);
+    status.textContent=`📤 ${photos.length}枚をNotionへアップロード中（合計 ${totalKB}KB）...`;
+    const result=await api("upload-photos",{method:"POST",body:{
+      notionId:editingNotionId,
+      photos:photos.map(({sizeKB,...rest})=>rest),
+    }});
+    // Update local state
+    const idx=MAINTENANCE.findIndex(m=>m.notionId===editingNotionId);
+    if(idx>=0)MAINTENANCE[idx]=result.page;
+    renderPhotoThumbs(result.page.attachments||[]);
+    clearQueue();
+    status.textContent=`✅ ${result.uploaded}枚アップロード完了`;
+    toast(`📷 写真${result.uploaded}枚をNotionに追加しました`);
+  }catch(e){
+    status.textContent=`❌ ${e.message}`;
+  }finally{
+    cBtn.disabled=aBtn.disabled=uBtn.disabled=false;
+    $("#photo-input").value="";
+    $("#photo-camera").value="";
+  }
+}
+
+document.getElementById("photo-input").addEventListener("change",e=>{
+  if(e.target.files?.length){addToQueue(Array.from(e.target.files));e.target.value=""}
+});
+document.getElementById("photo-camera").addEventListener("change",e=>{
+  if(e.target.files?.length){addToQueue(Array.from(e.target.files));e.target.value=""}
+});
+
+async function saveMaintenance(){
+  const vName=$("#add-vehicle").value;
+  const v=vehicleByName(vName);
+  if(!v){toast("車両を選択してください",true);return}
+  const data={
+    vehicleName:vName,
+    vehicleId:v.id,
+    date:$("#add-date").value,
+    type:$("#add-type").value,
+    title:$("#add-title").value.trim(),
+    content:$("#add-content").value.trim(),
+    labor:parseInt($("#add-labor").value)||0,
+    parts:parseInt($("#add-parts").value)||0,
+    mileage:parseInt($("#add-mileage").value)||null,
+    status:$("#add-status").value,
+    notes:$("#add-notes").value.trim(),
+    worker:"山内 茂",
+  };
+  if(!data.title){toast("項目（タイトル）は必須です",true);return}
+  const isEdit=!!editingNotionId;
+  $("#save-btn").disabled=true;
+  $("#save-btn").textContent=isEdit?"更新中...":"保存中...";
+  try{
+    let result;
+    if(isEdit){
+      result=await api("update-maintenance",{method:"POST",body:{...data,notionId:editingNotionId}});
+      const idx=MAINTENANCE.findIndex(m=>m.notionId===editingNotionId);
+      if(idx>=0)MAINTENANCE[idx]=result.page;
+      toast(`✅ ${vName}の「${data.title}」を更新しました`);
+    }else{
+      result=await api("create-maintenance",{method:"POST",body:data});
+      MAINTENANCE.unshift(result.page);
+      toast(`✅ ${vName}の「${data.title}」をNotionに保存しました`);
+    }
+    closeModal("add-modal");
+    editingNotionId=null;
+    resetForm();
+    renderToday();renderAlerts();renderVehicles();renderMenu();
+  }catch(e){
+    /* error already toasted */
+  }finally{
+    $("#save-btn").disabled=false;
+    $("#save-btn").textContent=isEdit?"💾 変更を保存":"💾 Notionに保存";
+  }
+}
+
+function renderMenu(){
+  $("#total-vehicles").textContent=VEHICLES.length+"台";
+  $("#active-vehicles").textContent=VEHICLES.filter(v=>v.status==="稼働中").length+"台";
+  $("#recent-maint").textContent=MAINTENANCE.length+"件";
+  $("#alert-count").textContent=buildAlerts().length+"件";
+  $("#data-date").textContent=lastFetch?lastFetch.toLocaleString("ja-JP"):"-";
+}
+
+function openModal(id){$("#"+id).classList.add("active");document.body.style.overflow="hidden"}
+function closeModal(id){$("#"+id).classList.remove("active");document.body.style.overflow=""}
+$$(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)closeModal(m.id)}));
+
+function toast(msg,err){const t=$("#toast");t.textContent=msg;t.className="toast show"+(err?" error":"");setTimeout(()=>t.classList.remove("show"),3000)}
+
+$("#fab-add").addEventListener("click",()=>{
+  if(!VEHICLES.length){toast("データ取得後に追加可能です",true);return}
+  editingNotionId=null;
+  resetForm();
+  $("#add-modal-title").textContent="整備記録を追加";
+  $("#add-modal-sub").textContent="Notionに即時保存されます";
+  $("#save-btn").textContent="💾 Notionに保存";
+  togglePhotoSection(false);
+  openModal("add-modal");
+});
+
+renderHeader();
+loadAllData();
+</script>
+</body>
+</html>
