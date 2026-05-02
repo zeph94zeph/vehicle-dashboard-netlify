@@ -303,6 +303,13 @@ nav.tabs{
         </div>
         <button class="btn" type="button" onclick="uploadQueue()" id="upload-queue-btn" style="font-size:13px;padding:10px;display:none">📤 まとめてアップロード（<span id="upload-count">0</span>枚）</button>
         <div id="photo-status" style="font-size:11px;color:var(--text-3);margin-top:6px"></div>
+
+        <label style="margin-top:14px">🔗 GoogleドライブURLを追加</label>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <input type="url" id="drive-url-input" placeholder="https://drive.google.com/..." style="flex:1;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;background:var(--surface);color:var(--text)">
+          <button class="btn secondary" type="button" onclick="addDriveLink()" style="width:auto;padding:9px 14px;font-size:13px;white-space:nowrap">追加</button>
+        </div>
+        <div id="drive-link-status" style="font-size:11px;color:var(--text-3);margin-top:5px"></div>
       </div>
       <div class="form-group" id="photo-hint" style="display:none">
         <div style="font-size:11px;color:var(--text-3);background:var(--surface-2);padding:8px 10px;border-radius:6px">
@@ -691,6 +698,31 @@ function clearQueue(){
   photoQueue=[];
   renderQueue();
   $("#photo-status").textContent="";
+}
+
+async function addDriveLink(){
+  if(!editingNotionId){toast("先に整備記録を保存してください",true);return}
+  const input=$("#drive-url-input");
+  const rawUrl=input.value.trim();
+  if(!rawUrl){toast("URLを入力してください",true);return}
+  if(!rawUrl.startsWith("https://")){toast("https:// から始まるURLを入力してください",true);return}
+  const status=$("#drive-link-status");
+  const btn=input.nextElementSibling;
+  btn.disabled=true;
+  status.textContent="追加中...";
+  try{
+    const result=await api("add-external-link",{method:"POST",body:{notionId:editingNotionId,url:rawUrl}});
+    const idx=MAINTENANCE.findIndex(m=>m.notionId===editingNotionId);
+    if(idx>=0)MAINTENANCE[idx]=result.page;
+    renderPhotoThumbs(result.page.attachments||[]);
+    input.value="";
+    status.textContent="✅ 追加しました";
+    toast("🔗 Googleドライブリンクを追加しました");
+  }catch(e){
+    status.textContent="❌ "+e.message;
+  }finally{
+    btn.disabled=false;
+  }
 }
 
 async function uploadQueue(){

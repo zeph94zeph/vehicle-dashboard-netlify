@@ -217,6 +217,30 @@ exports.handler = async (event) => {
         return reply(200, { ok: true, page: mapMaint(result) });
       }
 
+      if (action === "add-external-link") {
+        if (!data.notionId) return reply(400, { error: "notionId required" });
+        if (!data.url) return reply(400, { error: "url required" });
+
+        const page = await notionGetPage(token, data.notionId);
+        const currentFiles = page.properties?.["添付ファイル"]?.files || [];
+
+        // Preserve only external files (Notion-hosted files can't be re-PATCHed)
+        const preserved = currentFiles
+          .filter(f => f.type === "external")
+          .map(f => ({ type: "external", external: { url: f.external.url }, name: f.name }));
+
+        const linkName = data.url.replace(/^https?:\/\//, "").substring(0, 40);
+        const newFiles = [
+          ...preserved,
+          { type: "external", external: { url: data.url }, name: linkName },
+        ];
+
+        const patched = await notionUpdatePage(token, data.notionId, {
+          "添付ファイル": { files: newFiles },
+        });
+        return reply(200, { ok: true, page: mapMaint(patched) });
+      }
+
       if (action === "upload-photo" || action === "upload-photos") {
         // Body: { notionId, photos: [{ filename, contentType, base64 }, ...] }
         // Backwards-compat: { notionId, filename, contentType, base64 } for single photo
